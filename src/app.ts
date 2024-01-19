@@ -37,7 +37,7 @@ app.post(
       }
       const response = result.response;
       const text = response.text();
-      deleteFile(file!.filename);
+      if (file) deleteFile(file!.filename);
       return res.status(200).json({ answer: text });
     } catch (error) {
       console.log(error);
