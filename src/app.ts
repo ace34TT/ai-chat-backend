@@ -45,10 +45,13 @@ app.post(
         data.answer = result.response.text();
       } else {
         const isImageGeneration = await text_model.generateContent(
-          "answer by true if the following sentences refers to an image generation and false if not : " +
-            prompt
+          "answer by true if the following sentences refers to an image generation and false if it is just question or regular conversation answer : `" +
+            prompt +
+            "`"
         );
-        if (isImageGeneration.response.text() === "true" || botImage) {
+        console.log(isImageGeneration.response.text());
+        if (isImageGeneration.response.text() === "true" && botImage) {
+          console.log("processing image");
           data.image = await generateImage(botImage, prompt);
         } else {
           const result = await text_model.generateContent(prompt);
