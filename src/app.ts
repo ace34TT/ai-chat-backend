@@ -2,12 +2,11 @@ import express, { Request, Response } from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import upload from "./middlewares/multer.middleware";
-import { genAI } from "./configs/gemini.configs";
+import { genAI, text_model, vision_model } from "./configs/gemini.configs";
 import path from "path";
 import { fileToGenerativePart } from "./helpers/gemini.helpers";
 import { deleteFile } from "./helpers/file.helpers";
-const model_image = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
-const model_text = genAI.getGenerativeModel({ model: "gemini-pro" });
+
 const tmpDirectory = path.resolve(__dirname, "tmp/");
 const app = express();
 app.use(
@@ -31,9 +30,9 @@ app.post(
             "image/jpeg"
           ),
         ];
-        result = await model_image.generateContent([prompt, ...imageParts]);
+        result = await vision_model.generateContent([prompt, ...imageParts]);
       } else {
-        result = await model_text.generateContent(prompt);
+        result = await text_model.generateContent(prompt);
       }
       const response = result.response;
       const text = response.text();
