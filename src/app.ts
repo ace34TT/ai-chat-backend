@@ -6,7 +6,12 @@ import { genAI, text_model, vision_model } from "./configs/gemini.configs";
 import path from "path";
 import { fileToGenerativePart } from "./helpers/gemini.helpers";
 import { deleteFile } from "./helpers/file.helpers";
-import { generateBotProfile, generateImage } from "./services/chat.services";
+import {
+  generateBotProfile,
+  generateImage,
+  isImageGenerationPrompt,
+  speechToText,
+} from "./services/chat.services";
 
 const tmpDirectory = path.resolve(__dirname, "tmp/");
 const app = express();
@@ -21,16 +26,23 @@ app.post(
   "/api/chat",
   upload.single("file"),
   async (req: Request, res: Response) => {
-    const [prompt, file, botImage] = [
+    let [prompt, file, vocal, botDescription] = [
       req.body.prompt,
       req.file,
-      req.body.botImage,
+      req.body.vocal,
+      req.body.bot_description,
     ];
     try {
+      botDescription = JSON.parse(botDescription);
       const data = {
         answer: "",
         image: "",
       };
+      if (vocal) {
+        console.log("processing vocal");
+        const _prompt = await speechToText(vocal);
+        prompt = _prompt;
+      }
       if (file) {
         const imageParts = [
           fileToGenerativePart(
@@ -44,15 +56,12 @@ app.post(
         ]);
         data.answer = result.response.text();
       } else {
-        const isImageGeneration = await text_model.generateContent(
-          "answer by true if the following sentences refers to an image generation and false if it is just question or regular conversation answer : `" +
-            prompt +
-            "`"
-        );
-        console.log(isImageGeneration.response.text());
-        if (isImageGeneration.response.text() === "true" && botImage) {
+        if (
+          (await isImageGenerationPrompt(prompt)) === "true" &&
+          botDescription
+        ) {
           console.log("processing image");
-          data.image = await generateImage(botImage, prompt);
+          data.image = await generateImage(botDescription, prompt);
         } else {
           const result = await text_model.generateContent(prompt);
           data.answer = result.response.text();
@@ -70,9 +79,12 @@ app.post(
 app.post("/api/generate-profile", async (req: Request, res: Response) => {
   const [description] = [req.body.description];
   if (!description) return res.status(400).send("Invalid request body");
+  const result = await text_model.generateContent(
+    "give a name for this character : " + description
+  );
   try {
     const profile = await generateBotProfile(description);
-    return res.status(200).json({ url: profile });
+    return res.status(200).json({ url: profile, name: result.response.text() });
   } catch (error) {
     console.log(error);
   }

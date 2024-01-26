@@ -1,4 +1,14 @@
+import { text_model } from "../configs/gemini.configs";
 import { replicate } from "../configs/replicate.configs";
+
+export const isImageGenerationPrompt = async (prompt: string) => {
+  const isImageGeneration = await text_model.generateContent(
+    "answer by true if the following sentences refers to an image generation and false if it is just question or regular conversation answer : `" +
+      prompt +
+      "`"
+  );
+  return isImageGeneration.response.text();
+};
 
 export const generateBotProfile = async (description: string) => {
   const primaryImage: any = await replicate.run(
@@ -7,7 +17,9 @@ export const generateBotProfile = async (description: string) => {
       input: {
         width: 768,
         height: 768,
-        prompt: description + ", bright environment , simple background",
+        prompt:
+          description +
+          ", bright environment , simple background , face focused",
         scheduler: "K_EULER",
         num_outputs: 1,
         guidance_scale: 7.5,
@@ -20,7 +32,7 @@ export const generateBotProfile = async (description: string) => {
     "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4",
     {
       input: {
-        prompt: description + " img in future neon light world",
+        prompt: "a photo img " + description,
         num_steps: 50,
         style_name: "Photographic (Default)",
         input_image: primaryImage[0],
@@ -35,20 +47,45 @@ export const generateBotProfile = async (description: string) => {
   console.log(output);
   return output[0];
 };
-export const generateImage = async (base_image: any, prompt: any) => {
+export const generateImage = async (description: any, prompt: any) => {
   const output: any = await replicate.run(
-    "stability-ai/stable-diffusion-img2img:15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
+    "tencentarc/photomaker:ddfc2b08d209f9fa8c1eca692712918bd449f695dabb4a958da31802a9570fe4",
     {
       input: {
-        image: base_image,
-        prompt: prompt,
-        scheduler: "DPMSolverMultistep",
+        prompt: "A photo " + description.gender + " img " + prompt,
+        num_steps: 50,
+        style_name: "Photographic (Default)",
+        input_image: description.image,
         num_outputs: 1,
-        guidance_scale: 7.5,
-        prompt_strength: 0.8,
-        num_inference_steps: 25,
+        guidance_scale: 5,
+        negative_prompt:
+          "nsfw, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry",
+        style_strength_ratio: 30,
       },
     }
   );
+  console.log(output);
   return output[0];
+};
+export const speechToText = async (audio: any) => {
+  const output: any = await replicate.run(
+    "openai/whisper:4d50797290df275329f202e48c76360b3f22b08d28c196cbc54600319435f8d2",
+    {
+      input: {
+        audio: audio,
+        model: "large-v3",
+        translate: false,
+        temperature: 0,
+        transcription: "plain text",
+        suppress_tokens: "-1",
+        logprob_threshold: -1,
+        no_speech_threshold: 0.6,
+        condition_on_previous_text: true,
+        compression_ratio_threshold: 2.4,
+        temperature_increment_on_fallback: 0.2,
+      },
+    }
+  );
+  console.log(output);
+  return output.transcription;
 };
