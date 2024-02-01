@@ -82,6 +82,7 @@ app.post("/api/generate-profile", async (req: Request, res: Response) => {
   const result = await text_model.generateContent(
     "give a name for this character : " + description
   );
+  console.log({ name: result.response.text() });
   try {
     const profile = await generateBotProfile(description);
     return res.status(200).json({ url: profile, name: result.response.text() });
