@@ -8,4 +8,4 @@ const text_model = genAI.getGenerativeModel({ model: "models/gemini-pro" });
 const vision_model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 const embedModel = genAI.getGenerativeModel({ model: "models/embedding-001" });
 
-export { genAI, text_model, vision_model };
+export { genAI, text_model, vision_model, embedModel };

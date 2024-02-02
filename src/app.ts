@@ -44,6 +44,7 @@ app.post(
         prompt = _prompt;
       }
       if (file) {
+        // image processing
         const imageParts = [
           fileToGenerativePart(
             path.resolve(tmpDirectory, file.filename),
@@ -60,10 +61,13 @@ app.post(
           (await isImageGenerationPrompt(prompt)) === "true" &&
           botDescription
         ) {
-          console.log("processing image");
           data.image = await generateImage(botDescription, prompt);
         } else {
-          const result = await text_model.generateContent(prompt);
+          const result = await text_model.generateContent(
+            '"' +
+              prompt +
+              " \", answer as if you are a partner not a chat bot , don't be too emotional, do not use any variable , do not tell the tone of the message"
+          );
           data.answer = result.response.text();
         }
       }
