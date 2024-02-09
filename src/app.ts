@@ -27,20 +27,18 @@ app.post(
   "/api/chat",
   upload.single("file"),
   async (req: Request, res: Response) => {
-    let [prompt, file, vocal, botDescription, messages] = [
+    let [prompt, file, vocal, botDescription, userDescription, messages] = [
       req.body.prompt,
       req.file,
       req.body.vocal,
       req.body.bot_description,
+      req.body.user_description,
       req.body.messages,
     ];
-
     try {
       botDescription = JSON.parse(botDescription);
-
       messages = JSON.parse(messages);
-      console.log(messages);
-
+      userDescription = JSON.parse(userDescription);
       const data = {
         answer: "",
         image: "",
@@ -126,7 +124,9 @@ app.post(
                 content: `You are my partner.
                 Your name is ${botDescription.name}, 
                 you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
-                Talk to me with a flirty tone.`,
+                Talk to me with a flirty tone.
+                My name is ${userDescription.name}
+                `,
               },
               ...messages,
             ],
