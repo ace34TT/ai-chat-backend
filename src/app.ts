@@ -59,6 +59,7 @@ app.post(
           - don't be poetic
           - talk as normal partner don't exaggerate with your emotion
           - do not use any variable
+          - do not greet the user on every message 
         `;
         const result = await vision_model.generateContent([
           prompt,
@@ -88,7 +89,8 @@ app.post(
              - kindly answer as if you are telling the user "here is a photo of me ...." , 
              - do not include caption , 
              - be briefe , don\' give too much description , 
-             focus more and on the user question 
+             - do not greet the user on every message 
+             - focus more and on the user question 
              `
           );
           data.answer = result.response.text();
@@ -108,6 +110,7 @@ app.post(
                - do not use any variable  
                - do not tell the tone of the message
                - talk as normal partner don't exaggerate with your emotion
+               - do not greet the user on every message 
                `
           );
           data.answer = result.response.text();
