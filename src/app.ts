@@ -51,31 +51,75 @@ app.post(
             "image/jpeg"
           ),
         ];
+        prompt = `
+          user prompt = ${prompt}
+          answer to the user 
+          - as if you my partner by describing the image and relate it to my life
+          - well structured you answer 
+          - don't be poetic
+          - talk as normal partner don't exaggerate with your emotion
+          - do not use any variable
+        `;
         const result = await vision_model.generateContent([
           prompt,
           ...imageParts,
         ]);
         data.answer = result.response.text();
       } else {
-        if (
-          (await isImageGenerationPrompt(prompt)) === "true" &&
-          botDescription
-        ) {
-          data.image = await generateImage(botDescription, prompt);
+        const generatingImage =
+          (await isImageGenerationPrompt(prompt)) === "true";
+        console.log("image generation " + generatingImage);
+        if (generatingImage && botDescription) {
+          const descriptivePrompt = await text_model.generateContent(
+            `user prompt : ${prompt}
+             generate a short description according to this prompt`
+          );
+          const result = await text_model.generateContent(
+            ` user prompt : ${prompt}
+              description : ${descriptivePrompt.response.text()}
+             - don't be poetic
+             - talk as normal partner don't exaggerate with your emotion
+             - answer to the user question 
+             - use lovely and charming tone  
+             - answer as if you are a partner not a chat bot , 
+             - don't be too emotional , 
+             - do not use any variable , 
+             - do not tell the tone of the message
+             - kindly answer as if you are telling the user "here is a photo of me ...." , 
+             - do not include caption , 
+             - be briefe , don\' give too much description , 
+             focus more and on the user question 
+             `
+          );
+          data.answer = result.response.text();
+          data.image = await generateImage(
+            botDescription,
+            descriptivePrompt.response.text()
+          );
+          console.log(data);
         } else {
           const result = await text_model.generateContent(
-            '"' +
-              prompt +
-              " \", answer as if you are a partner not a chat bot , don't be too emotional, do not use any variable , do not tell the tone of the message"
+            ` user prompt = ${prompt}
+               - answer as if you are my partner not a chat bot ,
+               - don't be poetic
+               - use lovely and charming tone  
+               - talk as normal partner don't exaggerate
+               - don't be too emotional
+               - do not use any variable  
+               - do not tell the tone of the message
+               - talk as normal partner don't exaggerate with your emotion
+               `
           );
           data.answer = result.response.text();
         }
       }
-
       if (file) deleteFile(file!.filename);
       return res.status(200).json(data);
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
+      console.trace(error);
+
+      return res.status(500).send("internal error: " + error.message);
     }
   }
 );

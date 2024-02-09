@@ -3,9 +3,15 @@ import { replicate } from "../configs/replicate.configs";
 
 export const isImageGenerationPrompt = async (prompt: string) => {
   const isImageGeneration = await text_model.generateContent(
-    "answer by true if the following sentences refers to an image generation and false if it is just question or regular conversation answer : `" +
-      prompt +
-      "`"
+    `answer by true for the following case :
+      - user asks for photo
+      - user send a description
+      - user ask for preference or something I like
+          EJ : "do you like car ?" answer with true , our system will generate an image of a car 
+      - user ask something in the past
+          EJ : "Have you ever ride a horse" answer with true , 
+    answer by false for any other case 
+    user prompt : '${prompt} '`
   );
   return isImageGeneration.response.text();
 };
