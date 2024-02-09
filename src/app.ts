@@ -12,6 +12,7 @@ import {
   isImageGenerationPrompt,
   speechToText,
 } from "./services/chat.services";
+import openai from "./configs/openai.configs";
 
 const tmpDirectory = path.resolve(__dirname, "tmp/");
 const app = express();
@@ -26,14 +27,20 @@ app.post(
   "/api/chat",
   upload.single("file"),
   async (req: Request, res: Response) => {
-    let [prompt, file, vocal, botDescription] = [
+    let [prompt, file, vocal, botDescription, messages] = [
       req.body.prompt,
       req.file,
       req.body.vocal,
       req.body.bot_description,
+      req.body.messages,
     ];
+
     try {
       botDescription = JSON.parse(botDescription);
+
+      messages = JSON.parse(messages);
+      console.log(messages);
+
       const data = {
         answer: "",
         image: "",
@@ -51,16 +58,15 @@ app.post(
             "image/jpeg"
           ),
         ];
-        prompt = `
-          user prompt = ${prompt}
-          answer to the user 
-          - as if you my partner by describing the image and relate it to my life
-          - well structured you answer 
-          - don't be poetic
-          - talk as normal partner don't exaggerate with your emotion
-          - do not use any variable
-          - do not greet the user on every message 
-        `;
+        prompt = `user prompt = ${prompt}
+                  answer to the user 
+                  - as if you my partner by describing the image and relate it to my life
+                  - well structured you answer 
+                  - don't be poetic
+                  - talk as normal partner don't exaggerate with your emotion
+                  - do not use any variable
+                  - do not greet the user on every message 
+                `;
         const result = await vision_model.generateContent([
           prompt,
           ...imageParts,
@@ -100,28 +106,41 @@ app.post(
           );
           console.log(data);
         } else {
-          const result = await text_model.generateContent(
-            ` user prompt = ${prompt}
-               - answer as if you are my partner not a chat bot ,
-               - don't be poetic
-               - use lovely and charming tone  
-               - talk as normal partner don't exaggerate
-               - don't be too emotional
-               - do not use any variable  
-               - do not tell the tone of the message
-               - talk as normal partner don't exaggerate with your emotion
-               - do not greet the user on every message 
-               `
-          );
-          data.answer = result.response.text();
+          // const result = await text_model.generateContent(
+          //   ` user prompt = ${prompt}
+          //      - answer as if you are my partner not a chat bot ,
+          //      - don't be poetic
+          //      - use lovely and charming tone
+          //      - talk as normal partner don't exaggerate
+          //      - don't be too emotional
+          //      - do not use any variable
+          //      - do not tell the tone of the message
+          //      - talk as normal partner don't exaggerate with your emotion
+          //      - do not greet the user on every message
+          //      `
+          // );
+          const result = await openai.chat.completions.create({
+            messages: [
+              {
+                role: "system",
+                content: `You are my partner.
+                Your name is ${botDescription.name}, 
+                you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
+                Talk to me with a flirty tone.`,
+              },
+              ...messages,
+            ],
+            model: "gpt-3.5-turbo",
+          });
+          data.answer = result.choices[0].message.content || "";
         }
       }
       if (file) deleteFile(file!.filename);
+      console.log(data);
       return res.status(200).json(data);
     } catch (error: any) {
-      console.log(error);
+      // console.log(error);
       console.trace(error);
-
       return res.status(500).send("internal error: " + error.message);
     }
   }
@@ -136,6 +155,7 @@ app.post("/api/generate-profile", async (req: Request, res: Response) => {
   console.log({ name: result.response.text() });
   try {
     const profile = await generateBotProfile(description);
+
     return res.status(200).json({ url: profile, name: result.response.text() });
   } catch (error) {
     console.log(error);
