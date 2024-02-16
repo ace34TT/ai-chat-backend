@@ -9,6 +9,7 @@ const firebase = admin.initializeApp({
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     privateKey,
   }),
+  storageBucket: process.env.FIREBSE_STORAGE_BACKET,
 });
 
 export { firebase };

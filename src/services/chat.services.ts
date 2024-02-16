@@ -1,21 +1,54 @@
 import { text_model } from "../configs/gemini.configs";
+import openai from "../configs/openai.configs";
 import { replicate } from "../configs/replicate.configs";
 
-export const isImageGenerationPrompt = async (prompt: string) => {
+export const isImageGenerationPrompt = async (
+  messages: any,
+  _prompt: string
+) => {
   const isImageGeneration = await text_model.generateContent(
-    `answer by true for the following case :
-      - user asks for photo
-      - user send a description
-      - user ask for preference or something I like
-          EJ : "do you like car ?" answer with true , our system will generate an image of a car 
-      - user ask something in the past
-          EJ : "Have you ever ride a horse" answer with true , 
-    answer by false for any other case 
-    user prompt : '${prompt} '`
+    `for the following chat : 
+      chat : ${JSON.stringify(messages)}
+      is it good or not to append an image with the next assistant answer according to the user last message/prompt?
+      we also want to avoid sending image on every message  
+      user prompt : ${_prompt}
+      our goal is to make the user fill like if he/she is talking to real partner and the partner can send photo 
+      also make sure to not send photo en every message 
+      focus more on the user prompt instead of the previous chat 
+      answer with json file as  : 
+      {
+        response : true or false , 
+        reason : reason to say yes or no ,
+        _true : reason to say yes in % ,
+        _false : reason to say no in %
+      }
+    `
   );
-  return isImageGeneration.response.text();
-};
+  console.log(isImageGeneration.response.text());
+  let ans: any = "";
+  try {
+    ans = JSON.parse(isImageGeneration.response.text());
+    console.log("===>" + ans.response);
+  } catch (error) {
+    console.log("could not parse");
+    ans = { response: "false" };
+  }
 
+  console.log(ans);
+  const validResponses = ["TRUE", "true", "0", "True", true];
+  ans = "response" in ans && validResponses.includes(ans.response);
+  console.log("final result " + ans);
+
+  return ans;
+};
+// function getRandomBoolean() {
+//   let randomNumber = Math.random(); // generates a random number between 0 (inclusive) and 1 (exclusive)
+//   if (randomNumber < 0.6) {
+//     return false; // 60% chance
+//   } else {
+//     return true; // 40% chance
+//   }
+// }
 export const generateBotProfile = async (description: string) => {
   const primaryImage: any = await replicate.run(
     "stability-ai/stable-diffusion:ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",

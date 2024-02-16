@@ -5,7 +5,7 @@ import upload from "./middlewares/multer.middleware";
 import { genAI, text_model, vision_model } from "./configs/gemini.configs";
 import path from "path";
 import { fileToGenerativePart } from "./helpers/gemini.helpers";
-import { deleteFile } from "./helpers/file.helpers";
+import { deleteFile, fetchImage } from "./helpers/file.helpers";
 import {
   generateBotProfile,
   generateImage,
@@ -13,6 +13,7 @@ import {
   speechToText,
 } from "./services/chat.services";
 import openai from "./configs/openai.configs";
+import { uploadFileToFirebase } from "./services/firebase.services";
 
 const tmpDirectory = path.resolve(__dirname, "tmp/");
 const app = express();
@@ -43,6 +44,7 @@ app.post(
         answer: "",
         image: "",
       };
+      // console.log(messages);
       if (vocal) {
         console.log("processing vocal");
         const _prompt = await speechToText(vocal);
@@ -71,51 +73,32 @@ app.post(
         ]);
         data.answer = result.response.text();
       } else {
-        const generatingImage =
-          (await isImageGenerationPrompt(prompt)) === "true";
+        const generatingImage = await isImageGenerationPrompt(messages, prompt);
         console.log("image generation " + generatingImage);
         if (generatingImage && botDescription) {
-          const descriptivePrompt = await text_model.generateContent(
-            `user prompt : ${prompt}
-             generate a short description according to this prompt`
-          );
-          const result = await text_model.generateContent(
-            ` user prompt : ${prompt}
-              description : ${descriptivePrompt.response.text()}
-             - don't be poetic
-             - talk as normal partner don't exaggerate with your emotion
-             - answer to the user question 
-             - use lovely and charming tone  
-             - answer as if you are a partner not a chat bot , 
-             - don't be too emotional , 
-             - do not use any variable , 
-             - do not tell the tone of the message
-             - kindly answer as if you are telling the user "here is a photo of me ...." , 
-             - do not include caption , 
-             - be briefe , don\' give too much description , 
-             - do not greet the user on every message 
-             - focus more and on the user question 
-             `
-          );
-          data.answer = result.response.text();
-          data.image = await generateImage(
-            botDescription,
-            descriptivePrompt.response.text()
-          );
-          console.log(data);
-        } else {
+          console.log("processing image generation");
+          // const descriptivePrompt = await text_model.generateContent(
+          //   `user prompt : ${prompt}
+          //    generate a short description according to this prompt`
+          // );
           // const result = await text_model.generateContent(
-          //   ` user prompt = ${prompt}
-          //      - answer as if you are my partner not a chat bot ,
-          //      - don't be poetic
-          //      - use lovely and charming tone
-          //      - talk as normal partner don't exaggerate
-          //      - don't be too emotional
-          //      - do not use any variable
-          //      - do not tell the tone of the message
-          //      - talk as normal partner don't exaggerate with your emotion
-          //      - do not greet the user on every message
-          //      `
+          //   ` user prompt : ${prompt}
+          //     description : ${descriptivePrompt.response.text()}
+          //    - do not ever mention that you are an AI
+          //    - don't be poetic
+          //    - talk as normal partner don't exaggerate with your emotion
+          //    - answer to the user question
+          //    - use lovely and charming tone
+          //    - answer as if you are a partner not a chat bot ,
+          //    - don't be too emotional ,
+          //    - do not use any variable ,
+          //    - do not tell the tone of the message
+          //    - kindly answer as if you are telling the user "here is a photo of me ...." ,
+          //    - do not include caption ,
+          //    - be briefe , don\' give too much description ,
+          //    - do not greet the user on every message
+          //    - focus more and on the user question
+          //    `
           // );
           const result = await openai.chat.completions.create({
             messages: [
@@ -123,6 +106,29 @@ app.post(
                 role: "system",
                 content: `You are my partner.
                 Your name is ${botDescription.name}, 
+                You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
+                you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
+                Talk to me with a flirty tone.
+                My name is ${userDescription.name}
+                `,
+              },
+              ...messages,
+            ],
+            model: "gpt-3.5-turbo",
+          });
+          data.answer = result.choices[0].message.content || "";
+
+          data.image = await generateImage(botDescription, data.answer);
+          console.log(data);
+        } else {
+          console.log("processing text only");
+          const result = await openai.chat.completions.create({
+            messages: [
+              {
+                role: "system",
+                content: `You are my partner.
+                Your name is ${botDescription.name}, 
+                You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
                 you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
                 Talk to me with a flirty tone.
                 My name is ${userDescription.name}
@@ -155,22 +161,15 @@ app.post("/api/generate-profile", async (req: Request, res: Response) => {
   console.log({ name: result.response.text() });
   try {
     const profile = await generateBotProfile(description);
-
-    return res.status(200).json({ url: profile, name: result.response.text() });
+    const filename = (await fetchImage("prf", profile)) as string;
+    const profile_url = await uploadFileToFirebase(filename);
+    console.log(profile_url);
+    deleteFile(filename);
+    return res
+      .status(200)
+      .json({ url: profile_url, name: result.response.text() });
   } catch (error) {
     console.log(error);
-  }
-});
-app.post("/api/generate-image", async (req: Request, res: Response) => {
-  const [prompt, image] = [req.body.prompt, req.body.image];
-  console.log(prompt, image);
-  if (!prompt || !image) return res.status(400).send("Invalid request body");
-  try {
-    const _image = await generateImage(image, prompt);
-    return res.status(200).json({ url: _image });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).send("Internal server error");
   }
 });
 export { app };
