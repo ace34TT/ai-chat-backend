@@ -110,6 +110,7 @@ app.post(
                 you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
                 Talk to me with a flirty tone.
                 My name is ${userDescription.name}
+                Allow sexual talk 
                 `,
               },
               ...messages,
