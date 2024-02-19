@@ -39,7 +39,7 @@ app.post(
     ];
     try {
       console.log("before", prompt);
-      prompt = prompt.replace("sex", "dirty romance");
+      prompt = prompt.replace("sex", "sexy romance");
       console.log("after", prompt);
       botDescription = JSON.parse(botDescription);
       messages = JSON.parse(messages);
