@@ -1,4 +1,8 @@
-import { GoogleGenerativeAI, TaskType } from "@google/generative-ai";
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from "@google/generative-ai";
 require("dotenv").config();
 
 const GOOGLE_API_KEY = process.env["GOOGLE_API_KEY"];
@@ -8,4 +12,10 @@ const text_model = genAI.getGenerativeModel({ model: "models/gemini-pro" });
 const vision_model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 const embedModel = genAI.getGenerativeModel({ model: "models/embedding-001" });
 
+text_model.safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+];
 export { genAI, text_model, vision_model, embedModel };

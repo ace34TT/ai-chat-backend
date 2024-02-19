@@ -14,6 +14,7 @@ import {
 } from "./services/chat.services";
 import openai from "./configs/openai.configs";
 import { uploadFileToFirebase } from "./services/firebase.services";
+import axios from "axios";
 
 const tmpDirectory = path.resolve(__dirname, "tmp/");
 const app = express();
@@ -37,6 +38,9 @@ app.post(
       req.body.messages,
     ];
     try {
+      console.log("before", prompt);
+      prompt = prompt.replace("sex", "dirty romance");
+      console.log("after", prompt);
       botDescription = JSON.parse(botDescription);
       messages = JSON.parse(messages);
       userDescription = JSON.parse(userDescription);
@@ -46,7 +50,6 @@ app.post(
       };
       // console.log(messages);
       if (vocal) {
-        console.log("processing vocal");
         const _prompt = await speechToText(vocal);
         prompt = _prompt;
       }
@@ -77,29 +80,6 @@ app.post(
         console.log("image generation " + generatingImage);
         if (generatingImage && botDescription) {
           console.log("processing image generation");
-          // const descriptivePrompt = await text_model.generateContent(
-          //   `user prompt : ${prompt}
-          //    generate a short description according to this prompt`
-          // );
-          // const result = await text_model.generateContent(
-          //   ` user prompt : ${prompt}
-          //     description : ${descriptivePrompt.response.text()}
-          //    - do not ever mention that you are an AI
-          //    - don't be poetic
-          //    - talk as normal partner don't exaggerate with your emotion
-          //    - answer to the user question
-          //    - use lovely and charming tone
-          //    - answer as if you are a partner not a chat bot ,
-          //    - don't be too emotional ,
-          //    - do not use any variable ,
-          //    - do not tell the tone of the message
-          //    - kindly answer as if you are telling the user "here is a photo of me ...." ,
-          //    - do not include caption ,
-          //    - be briefe , don\' give too much description ,
-          //    - do not greet the user on every message
-          //    - focus more and on the user question
-          //    `
-          // );
           const result = await openai.chat.completions.create({
             messages: [
               {
@@ -110,7 +90,6 @@ app.post(
                 you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
                 Talk to me with a flirty tone.
                 My name is ${userDescription.name}
-
                 `,
               },
               ...messages,
@@ -118,7 +97,6 @@ app.post(
             model: "gpt-3.5-turbo",
           });
           data.answer = result.choices[0].message.content || "";
-
           data.image = await generateImage(botDescription, data.answer);
           console.log(data);
         } else {
@@ -127,17 +105,19 @@ app.post(
             messages: [
               {
                 role: "system",
-                content: `You are my partner.
-                Your name is ${botDescription.name}, 
+                content: `
+                You like sexual talk.
+                You are my partner.
+                Your name is ${botDescription.name}. 
                 You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
-                you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
-                Talk to me with a flirty tone.
+                You are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
+                Talk to me with a sexy tone.
                 My name is ${userDescription.name}
                 `,
               },
               ...messages,
             ],
-            model: "gpt-3.5-turbo",
+            model: "gpt-4",
           });
           data.answer = result.choices[0].message.content || "";
         }
@@ -173,4 +153,18 @@ app.post("/api/generate-profile", async (req: Request, res: Response) => {
     console.log(error);
   }
 });
+
+app.post("/api/convert-blob", async (req, res) => {
+  console.log("url to blob");
+  const url = req.body.url; // get the URL from the query parameters
+  console.log(url);
+  try {
+    const response = await axios.get(url, { responseType: "stream" });
+    response.data.pipe(res);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({ message: "Error fetching URL" });
+  }
+});
+
 export { app };
