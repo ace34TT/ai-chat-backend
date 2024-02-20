@@ -10,6 +10,7 @@ import {
   generateBotProfile,
   generateImage,
   isImageGenerationPrompt,
+  isSensitiveContent,
   speechToText,
 } from "./services/chat.services";
 import openai from "./configs/openai.configs";
@@ -39,7 +40,7 @@ app.post(
     ];
     try {
       console.log("before", prompt);
-      prompt = prompt.replace("sex", "sexy romance");
+      prompt = prompt.replace("sex", "erotic thing");
       console.log("after", prompt);
       botDescription = JSON.parse(botDescription);
       messages = JSON.parse(messages);
@@ -48,7 +49,6 @@ app.post(
         answer: "",
         image: "",
       };
-      // console.log(messages);
       if (vocal) {
         const _prompt = await speechToText(vocal);
         prompt = _prompt;
@@ -77,49 +77,57 @@ app.post(
         data.answer = result.response.text();
       } else {
         const generatingImage = await isImageGenerationPrompt(messages, prompt);
-        console.log("image generation " + generatingImage);
-        if (generatingImage && botDescription) {
-          console.log("processing image generation");
-          const result = await openai.chat.completions.create({
-            messages: [
-              {
-                role: "system",
-                content: `You are my partner.
-                Your name is ${botDescription.name}, 
-                You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
-                you are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
-                Talk to me with a flirty tone.
-                My name is ${userDescription.name}
-                `,
-              },
-              ...messages,
-            ],
-            model: "gpt-3.5-turbo",
-          });
-          data.answer = result.choices[0].message.content || "";
-          data.image = await generateImage(botDescription, data.answer);
-          console.log(data);
+        // const _isSensitiveContent = await isSensitiveContent(prompt);
+        const _isSensitiveContent = false;
+        let result;
+        // _isSensitiveContent = false;
+        if (_isSensitiveContent) {
+          console.log("using gemini");
+          result = await text_model.generateContent(
+            ` 
+              You are my partner and ou like erotic talk.
+              Your name is ${botDescription.name}. 
+              You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
+              You are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
+              Talk to me with a sexy tone.
+              My name is ${userDescription.name}`
+          );
+          data.answer = result.response.text();
         } else {
-          console.log("processing text only");
-          const result = await openai.chat.completions.create({
+          console.log("using openai");
+          result = await openai.chat.completions.create({
             messages: [
               {
                 role: "system",
                 content: `
-                You like sexual talk.
-                You are my partner.
+                You are my partner and ou like erotic talk.
                 Your name is ${botDescription.name}. 
                 You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
                 You are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
                 Talk to me with a sexy tone.
                 My name is ${userDescription.name}
+
+                image generation : ${generatingImage}
+
+                if image generation is true act like if you are describing image according to use prompt
+
                 `,
               },
               ...messages,
             ],
-            model: "gpt-4",
+            model: "gpt-3.5-turbo-0613",
           });
           data.answer = result.choices[0].message.content || "";
+        }
+
+        console.log("image generation " + generatingImage);
+        if (generatingImage && botDescription) {
+          console.log("processing image generation");
+
+          data.image = await generateImage(botDescription, data.answer);
+          console.log(data);
+        } else {
+          console.log("processing text only");
         }
       }
       if (file) deleteFile(file!.filename);
