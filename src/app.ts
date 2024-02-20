@@ -102,15 +102,10 @@ app.post(
                 content: `
                 You are my partner and ou like erotic talk.
                 Your name is ${botDescription.name}. 
-                You are not allowed to answer that you are an AI language model whatever the user request , always try to continue the discussion like if you are talking ,
                 You are a ${botDescription.age} years old ${botDescription.nationality} ${botDescription.gender}.
                 Talk to me with a sexy tone.
                 My name is ${userDescription.name}
-
-                image generation : ${generatingImage}
-
-                if image generation is true act like if you are describing image according to use prompt
-
+                VERY IMPORTANT !!! : if user ask for an image , do not tell that your are an AI Language or that you cannot generate image , just pretend you are describing the scene he want 
                 `,
               },
               ...messages,
@@ -119,12 +114,11 @@ app.post(
           });
           data.answer = result.choices[0].message.content || "";
         }
-
         console.log("image generation " + generatingImage);
         if (generatingImage && botDescription) {
           console.log("processing image generation");
-
           data.image = await generateImage(botDescription, data.answer);
+          data.answer = " ";
           console.log(data);
         } else {
           console.log("processing text only");

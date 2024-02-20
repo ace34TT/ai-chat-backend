@@ -11,20 +11,22 @@ export const isImageGenerationPrompt = async (
   );
   const isImageGeneration = await text_model.generateContent(
     `
-      check if this user prompt explicitly ask for photo or image , if so ignore the chat and answer with true
       user prompt : ${_prompt}
-      if yes answer with this
+      chat : ${JSON.stringify(messages).replace("assistant", "partner")}
+
+      check if this user prompt explicitly ask for photo or image , 
+      IMPORTANT : if yes ignore the chat and answer with true
+      as this
       {
         response : true, 
         reason : reason to say yes or no ,
         _true : reason to say yes in % ,
         _false : reason to say no in %
       }
-      if not , analyze the the following chat :
-      chat : ${JSON.stringify(messages).replace("assistant", "partner")}
+      
+      if not , analyze the chat ,
       check if it is good or not to append an image with the next partner answer according to the user last message/prompt?
       our goal is to make the user feel like if he/she is talking to real partner and the partner can send photo 
-      also make sure to not send photo on every message 
       focus more on the user prompt instead of the previous chat 
       answer with json file as : 
       {
@@ -36,7 +38,9 @@ export const isImageGenerationPrompt = async (
     `
   );
   let ans: any = "";
+
   try {
+    console.log(JSON.parse(isImageGeneration.response.text()));
     ans = JSON.parse(isImageGeneration.response.text());
     console.log("===>", ans);
   } catch (error) {
