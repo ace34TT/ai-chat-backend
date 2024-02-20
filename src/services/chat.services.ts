@@ -11,7 +11,7 @@ export const isImageGenerationPrompt = async (
   );
   const isImageGeneration = await text_model.generateContent(
     `
-      check if this user prompt explicitly ask for photo or image ,
+      check if this user prompt explicitly ask for photo or image , if so ignore the chat and answer with true
       user prompt : ${_prompt}
       if yes answer with this
       {
